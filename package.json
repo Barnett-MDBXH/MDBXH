@@ -1,0 +1,14 @@
+﻿{
+  "name": "kakogawa-bot",
+  "version": "1.0.0",
+  "description": "Discord bot: welcome, role management, online count channel",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.0.0",
+    "dotenv": "^16.0.0"
+  }
+}
