@@ -93,16 +93,6 @@ client.on("guildMemberAdd", async (member) => {
   channel.send({ embeds: [embed] }).catch(() => {});
 });
 
-function countOnline(guild) {
-  let online = 0;
-  guild.members.cache.forEach((m) => {
-    if (m.user.bot) return;
-    const st = m.presence?.status;
-    if (st && st !== "offline") online++;
-  });
-  return online;
-}
-
 async function updateCounters() {
   const guild = await client.guilds.fetch(process.env.GUILD_ID);
 
@@ -129,13 +119,43 @@ async function updateCounters() {
 }
 
 
+const GUILD_ID = process.env.GUILD_ID;
+const ONLINE_CH_ID = process.env.ONLINE_COUNT_CHANNEL_ID;
+const MEMBER_CH_ID = process.env.MEMBER_COUNT_CHANNEL_ID;
+
+async function updateCountersOnce() {
+  try {
+    const guild = await client.guilds.fetch(GUILD_ID);
+
+    await guild.members.fetch({ withPresences: true }).catch(() => guild.members.fetch());
+
+    const total = guild.memberCount;
+
+    const online = guild.members.cache.filter(m => {
+      if (m.user.bot) return false;
+      const s = m.presence?.status;
+      return s === "online" || s === "idle" || s === "dnd";
+    }).size;
+
+    const onlineCh = await guild.channels.fetch(ONLINE_CH_ID).catch(() => null);
+    const memberCh = await guild.channels.fetch(MEMBER_CH_ID).catch(() => null);
+
+    if (onlineCh) await onlineCh.setName(`🟢 Online: ${online}`).catch(() => {});
+    if (memberCh) await memberCh.setName(`👥 Members: ${total}`).catch(() => {});
+
+    console.log(`[Counters] Online=${online}, Members=${total}`);
+  } catch (e) {
+    console.error("[Counters] update failed:", e);
+  }
+}
+
 client.once("clientReady", async () => {
   console.log(`Logged in as ${client.user.tag}`);
   await registerCommands();
   console.log("Slash commands registered.");
 
-  await updateCounters();
-setInterval(updateCounters, 60 * 1000);
+  await updateCountersOnce();
+  setInterval(updateCountersOnce, 60 * 1000);
 });
 
 client.on("interactionCreate", async (interaction) => {
